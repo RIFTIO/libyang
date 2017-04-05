@@ -112,7 +112,8 @@ set(headers
 	src/tree_data.h
 	src/extensions.h
 	src/xml.h
-	src/dict.h)
+	src/dict.h
+  src/resolve.h)
 
 # create static libyang library
 if(STATIC)

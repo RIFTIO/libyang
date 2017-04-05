@@ -332,13 +332,12 @@ struct lys_module *
 lyp_search_file(struct ly_ctx *ctx, struct lys_module *module, const char *name, const char *revision,
                 int implement, struct unres_schema *unres)
 {
-    size_t len, flen, match_len = 0, dir_len;
+    size_t len;
     int fd, i;
     char *wd, *wn = NULL;
     DIR *dir = NULL;
-    struct dirent *file;
     char *match_name = NULL, *dot, *rev, *filename;
-    LYS_INFORMAT format, match_format = 0;
+    LYS_INFORMAT match_format = 0;
     struct lys_module *result = NULL;
     unsigned int u;
     struct ly_set *dirs;
@@ -373,6 +372,43 @@ lyp_search_file(struct ly_ctx *ctx, struct lys_module *module, const char *name,
     }
     wd = NULL;
 
+    //ATTN: Riftware addition to make search faster.
+    //https://github.com/CESNET/libyang/issues/302
+    size_t idx = 0;
+    while (idx < dirs->number) {
+      if (wd) free(wd);
+      if (wn) free(wn);
+      wn = NULL;
+
+      wd = (char *)dirs->set.g[idx];
+      dirs->set.g[idx++] = NULL;
+      LOGVRB("Searching for \"%s\" in %s.", name, wd);
+
+      // Needed till we have yangdump tool
+      // as part of cmake.
+      if (strstr(wd, "yuma")) {
+        continue;
+      }
+
+      if (asprintf(&wn, "%s/%s.yang", wd, name) == -1) {
+        LOGMEM;
+        goto cleanup;
+      }
+
+      if (stat(wn, &st) == -1) {
+         LOGWRN("Unable to get information about \"%s\" file in \"%s\" "
+                "when searching for (sub)modules (%s)",
+                name, wd, strerror(errno));
+         continue;
+      }
+
+      match_name = wn;
+      wn = NULL;
+      match_format = LYS_IN_YANG;
+      goto matched;
+    }
+
+#if 0
     /* start searching */
     while (dirs->number) {
         free(wd);
@@ -484,6 +520,7 @@ lyp_search_file(struct ly_ctx *ctx, struct lys_module *module, const char *name,
             }
         }
     }
+#endif
 
     if (!match_name) {
         if (!module && !revision) {
