@@ -113,7 +113,9 @@ set(headers
 	src/extensions.h
 	src/xml.h
 	src/dict.h
-  src/resolve.h)
+  src/resolve.h
+  src/common.h
+  src/dict_private.h)
 
 # create static libyang library
 if(STATIC)
