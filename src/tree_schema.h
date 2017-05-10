@@ -449,6 +449,9 @@ struct lys_ext_instance {
     uint8_t ext_type;                /**< extension type (#LYEXT_TYPE) */
     uint8_t padding;                 /**< 32b padding */
     struct lys_ext_instance **ext;   /**< array of pointers to the extension instances */
+    void *priv;                      /**< private caller's data, not used by libyang */
+    struct lys_module *module;       /**< pointer to the extension instance's module (mandatory) */
+    LYS_NODE nodetype;               /**< LYS_EXT */
 };
 
 /**
@@ -478,11 +481,12 @@ struct lys_ext_instance_complex {
     uint8_t ext_type;                /**< extension type (#LYEXT_TYPE) */
     uint8_t padding;                 /**< 32b padding */
     struct lys_ext_instance **ext;   /**< array of pointers to the extension instances */
+    void *priv;                      /**< private caller's data, not used by libyang */
+    struct lys_module *module;       /**< pointer to the extension instance's module (mandatory) */
+    LYS_NODE nodetype;               /**< LYS_EXT */
 
     /* to this point the structure is compatible with the generic ::lys_ext_instance structure */
     struct lyext_substmt *substmt;   /**< pointer to the plugin's list of substatements' information */
-    struct lys_module *module;       /**< pointer to the extension instance's module (mandatory) */
-    LYS_NODE nodetype;               /**< type of the node for the case the extension instance contains schema nodes, */
     char content[];                  /**< content of the extension instance */
 };
 

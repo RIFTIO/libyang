@@ -23,21 +23,6 @@
 /* this is used to distinguish lyxml_elem * from a YANG temporary parsing structure, the first byte is compared */
 #define LY_YANG_STRUCTURE_FLAG 0x80
 
-#define LY_INTERNAL_MODULE_COUNT 3
-
-/**
- * @brief Internal list of internal modules that are a part
- *        of every context and must never be freed. Structure
- *        instance defined in "tree.c".
- */
-struct internal_modules {
-    const struct {
-        const char *name;
-        const char *revision;
-    } modules[LY_INTERNAL_MODULE_COUNT];
-    const uint8_t count;
-};
-
 /**
  * @brief YANG namespace
  */
@@ -211,11 +196,12 @@ struct lys_node *lys_node_dup(struct lys_module *module, struct lys_node *parent
  * @param[in] parent Parent structure of the new extension instances list
  * @param[in] parent_type Type of the provide \p parent *
  * @param[in,out] new Address where to store the created list of duplicated extension instances
+ * @param[in] shallow Whether to copy children and connect to parent/module too.
  * @param[in] unres list of unresolved items
  *
  */
-int lys_ext_dup(struct lys_module *mod, struct lys_ext_instance **orig, uint8_t size,
-                void *parent, LYEXT_PAR parent_type, struct lys_ext_instance ***new, struct unres_schema *unres);
+int lys_ext_dup(struct lys_module *mod, struct lys_ext_instance **orig, uint8_t size, void *parent,
+                LYEXT_PAR parent_type, struct lys_ext_instance ***new, int shallow, struct unres_schema *unres);
 
 /**
  * @brief Iterate over the specified type of the extension instances
@@ -233,7 +219,8 @@ int lys_ext_iter(struct lys_ext_instance **ext, uint8_t ext_size, uint8_t start,
 /**
  * @brief free the array of the extension instances
  */
-void lys_extension_instances_free(struct ly_ctx *ctx, struct lys_ext_instance **e, unsigned int size);
+void lys_extension_instances_free(struct ly_ctx *ctx, struct lys_ext_instance **e, unsigned int size,
+                                  void (*private_destructor)(const struct lys_node *node, void *priv));
 
 /**
  * @brief Switch two same schema nodes. \p src must be a shallow copy
@@ -259,8 +246,10 @@ int lys_leaf_add_leafref_target(struct lys_node_leaf *leafref_target, struct lys
  *
  * @param[in] libyang context where the schema of the ondition is used.
  * @param[in] w When structure to free.
+ * @param[in] private_destructor Destructor for priv member in extension instances
  */
-void lys_when_free(struct ly_ctx *ctx, struct lys_when *w);
+void lys_when_free(struct ly_ctx *ctx, struct lys_when *w,
+                   void (*private_destructor)(const struct lys_node *node, void *priv));
 
 /**
  * @brief Free the schema tree restriction (must, ...) structure content
@@ -270,8 +259,10 @@ void lys_when_free(struct ly_ctx *ctx, struct lys_when *w);
  * the content of the structure, so after using this function, caller is supposed to
  * use free(restr). It is done to free the content of structures being allocated as
  * part of array, in that case the free() is used on the whole array.
+ * @param[in] private_destructor Destructor for priv member in extension instances
  */
-void lys_restr_free(struct ly_ctx *ctx, struct lys_restr *restr);
+void lys_restr_free(struct ly_ctx *ctx, struct lys_restr *restr,
+                    void (*private_destructor)(const struct lys_node *node, void *priv));
 
 /**
  * @brief Free the schema tree type structure content
@@ -281,8 +272,10 @@ void lys_restr_free(struct ly_ctx *ctx, struct lys_restr *restr);
  * the content of the structure, so after using this function, caller is supposed to
  * use free(type). It is done to free the content of structures being allocated as
  * part of array, in that case the free() is used on the whole array.
+ * @param[in] private_destructor Destructor for priv member in extension instances
  */
-void lys_type_free(struct ly_ctx *ctx, struct lys_type *type);
+void lys_type_free(struct ly_ctx *ctx, struct lys_type *type,
+                   void (*private_destructor)(const struct lys_node *node, void *priv));
 
 /**
  * @brief Unlink the schema node from the tree.
@@ -495,6 +488,9 @@ void lys_sub_module_remove_devs_augs(struct lys_module *module);
 void lys_sub_module_apply_devs_augs(struct lys_module *module);
 
 void lys_submodule_module_data_free(struct lys_submodule *submodule);
+
+const struct lys_module *lys_parse_mem_(struct ly_ctx *ctx, const char *data, LYS_INFORMAT format, int internal,
+                                        int implement);
 
 /**
  * @brief Get know if the \p leaf is a key of the \p list
